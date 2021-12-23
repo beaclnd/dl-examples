@@ -1,13 +1,56 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
-char *getValueByKey(char *key) {
-    if(strcmp(key, "some") == 0) {
-        char *value = "{\"a\": 123 \"b\": \"Hi!\"}";
-        return value;
+// A struct to hold the cadidate value
+typedef struct _Value {
+    int id;
+    char* name;
+    int age;
+    int votes;
+} CandidateValue;
+typedef struct _GetValueByKeyResult {
+    bool exception; 
+    void *value;
+} GetValueByKeyResult;
+
+// An array to mock the kv store
+CandidateValue kvStore[] = {
+    {0, "White", 49, 0}, {1, "Pink", 29, 0}
+};
+
+// The functions to be imported into the dl
+void getValueByKey(int key, GetValueByKeyResult *result) {
+    if (key > 1 || key < 0) {
+        result->exception = true;
+        result->value = NULL;
+        return;
     }
-    return NULL;
+    result->exception = false;
+    CandidateValue *cv = result->value;
+    cv->id = kvStore[key].id;
+    cv->name = kvStore[key].name;
+    cv->age = kvStore[key].age;
+    cv->votes = kvStore[key].votes;
+}
+int setValueByKey(int key, void *value) {
+    if (key > 1 || key < 0) {
+        return -1;
+    }
+    CandidateValue *cv = value;
+    kvStore[key].id = cv->id;
+    kvStore[key].name = cv->name;
+    kvStore[key].age = cv->age;
+    kvStore[key].votes = cv->votes;
+    return 0;
+}
+void myLog(char* message, ...) {
+    va_list ap;
+    va_start(ap, message);
+    int id = va_arg(ap, int);
+    printf("%s %d\n", message, id);
+    va_end(ap);
 }
 
 void dllinked() {
@@ -22,9 +65,13 @@ void dllinked() {
     sprintf(buf, "the sum is: %d", sum);
     hello(buf);
 
-    initImportedFunctions(getValueByKey);
-    showValue("some");
-    showValue("none");
+    initImportedFunctions(getValueByKey, setValueByKey, myLog);
+    vote(1, -1);
+    vote(1, 0);
+    vote(1, 0);
+    vote(1, 1);
+    printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
+    printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
     #endif
 }
 
@@ -48,11 +95,15 @@ void dlopened() {
     sprintf(buf, "the sum is: %d", sum);
     hello(buf);
 
-    void (*initImportedFunctions)(void*) = dlsym(dlhandle, "initImportedFunctions");
-    initImportedFunctions(getValueByKey);
-    void (*showValue)(char*) = dlsym(dlhandle, "showValue");
-    showValue("some");
-    showValue("none");
+    void (*initImportedFunctions)(void*, void*, void*) = dlsym(dlhandle, "initImportedFunctions");
+    initImportedFunctions(getValueByKey, setValueByKey, myLog);
+    void (*vote)(int, int) = dlsym(dlhandle, "vote");
+    vote(1, -1);
+    vote(1, 0);
+    vote(1, 0);
+    vote(1, 1);
+    printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
+    printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
     #endif
 }
 

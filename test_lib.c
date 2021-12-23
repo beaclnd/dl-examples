@@ -29,16 +29,40 @@ void concatString(int count, ...) {
     va_end(ap);
 }
 
-char* (*getValueByKey)(char* key);
-void initImportedFunctions(void *func) {
-    getValueByKey = func;
+GetValueByKey getValueByKey;
+SetValueByKey setValueByKey;
+Log logSomething;
+void initImportedFunctions(GetValueByKey getValueByKeyFunc, SetValueByKey setValueByKeyFunc, Log logFunc) {
+    getValueByKey = getValueByKeyFunc;
+    setValueByKey = setValueByKeyFunc;
+    logSomething = logFunc;
 }
 
-void showValue(char* key) {
-    char *value = getValueByKey(key);
-    if (value == NULL) {
-        printf("Not found value for %s\n", key);
-        return;
+// @param count <int> variable parameter count except itself
+// @param id <int> candidate id
+FunctionResult vote(int count, ...) {
+    va_list ap;
+    va_start(ap, count);
+    int id = va_arg(ap, int);
+    // GetValueByKeyResult result;
+    GetValueByKeyResult result; 
+    CandidateValue cv;
+    result.value = &cv;
+    getValueByKey(id, &result);
+    if (result.exception) {
+        va_end(ap);
+        logSomething("Not found the candidate whose id is: ", id);
+        FunctionResult fr = {-1, "Faied to found the candidate"};
+        return fr;
     }
-    printf("The corresponding value of %s is: %s\n", key, value);
+    cv.votes += 1;
+    int result_code = setValueByKey(id, &cv);
+    if (result_code == -1) {
+        va_end(ap);
+        FunctionResult fr = {-1, "Faied to set the candidate"};
+        return fr;
+    }
+    FunctionResult fr = {0, "Success to vote"};
+    va_end(ap);
+    return fr;
 }

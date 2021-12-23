@@ -1,3 +1,13 @@
 *.o
 *.so
 main
+
+.gradle
+build
+*.class
+*.jar
+hs_err_pid*
+!gradle-wrapper.jar
+
+.vscode
+.idea

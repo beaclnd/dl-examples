@@ -7,10 +7,36 @@ extern int addSum(int, int);
 
 extern void concatString(int, ...);
 
-// import callback function
-extern void initImportedFunctions(void*);
+// A struct to hold the GetValueByKey result
+typedef struct _GetValueByKeyResult {
+    bool exception; 
+    void *value;
+} GetValueByKeyResult;
 
-// the function will call a callback function
-extern void showValue(char*);
+// The functions act as callback which should be imported from the outside environment
+// Returning struct by value in JNA callback is not working, so insteadly use pointer parameter to receive the returning result 
+typedef void (*GetValueByKey) (int key, GetValueByKeyResult *result);
+typedef int (*SetValueByKey)(int key, void *value);
+typedef void (*Log)(char *message, ...);
+
+// To import the callback functions
+extern void initImportedFunctions(GetValueByKey, SetValueByKey, Log);
+
+// A struct to hold the exported function result
+typedef struct _Result {
+    int code;
+    char* message;
+} FunctionResult;
+
+// A struct to hold the candidate data
+typedef struct _Value {
+    int id;
+    char* name;
+    int age; 
+    int votes;
+} CandidateValue;
+
+// The inner of the function will call the callback functions
+extern FunctionResult vote(int, ...);
 
 #endif // TEST_LIB_H__
