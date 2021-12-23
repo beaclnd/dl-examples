@@ -45,12 +45,8 @@ int setValueByKey(int key, void *value) {
     kvStore[key].votes = cv->votes;
     return 0;
 }
-void myLog(char* message, ...) {
-    va_list ap;
-    va_start(ap, message);
-    int id = va_arg(ap, int);
-    printf("%s %d\n", message, id);
-    va_end(ap);
+void myLog(char* message) {
+    printf("%s\n", message);
 }
 
 void dllinked() {

@@ -18,9 +18,11 @@ public class TestCDL {
 
     public class GetValueByKeyImp implements CDL.GetValueByKey {
         @Override
+//        public CDL.GetValueByKeyResult.ByValue invoke(int key, Pointer resultPtr) {
         public void invoke(int key, Pointer resultPtr) {
             CandidateValue v = kvStore.get(key);
             CDL.GetValueByKeyResult result = new CDL.GetValueByKeyResult(resultPtr);
+//            CDL.GetValueByKeyResult.ByValue retu = new CDL.GetValueByKeyResult.ByValue();
             if (v == null) {
                 // Return NULL pointer to The native library not working
                 // return null;
@@ -29,6 +31,9 @@ public class TestCDL {
                 result.exception = true;
                 result.write();
                 return;
+//                retu.exception = true;
+//                retu.value = Pointer.NULL;
+//                return retu;
             }
             result.exception = false;
             CandidateValue cv = new CandidateValue(result.value);
@@ -36,6 +41,9 @@ public class TestCDL {
             // write to the native memory
             cv.write();
             result.write();
+//             retu.exception = true;
+//             retu.value = result.value;
+//             return retu;
         }
     }
     public class SetValueByKeyImp implements CDL.SetValueByKey {
@@ -57,6 +65,7 @@ public class TestCDL {
     public class LogSomethingImp implements CDL.LogSomething {
         @Override
         public void invoke(String message){
+//        public void invoke(String message, int... args){
             System.out.println(message);
         }
     }

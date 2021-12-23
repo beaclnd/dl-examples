@@ -51,7 +51,9 @@ FunctionResult vote(int count, ...) {
     getValueByKey(id, &result);
     if (result.exception) {
         va_end(ap);
-        logSomething("Not found the candidate whose id is: ", id);
+        char buf[100] = {0};
+        sprintf(buf, "Not found the candidate whose id is: %d", id);
+        logSomething(buf);
         FunctionResult fr = {-1, "Faied to found the candidate"};
         return fr;
     }

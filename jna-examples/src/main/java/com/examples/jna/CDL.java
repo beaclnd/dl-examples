@@ -17,7 +17,7 @@ public interface CDL extends Library {
         public boolean exception;
         public Pointer value;
 
-        public GetValueByKeyResult() {}
+//        public GetValueByKeyResult() {}
         public GetValueByKeyResult(Pointer ptr) {
             super(ptr);
             read();
@@ -37,6 +37,8 @@ public interface CDL extends Library {
 
     // The callback functions
     public interface GetValueByKey extends Callback {
+        // Returning structure by value in callback is not working well
+        // public GetValueByKeyResult invoke(int key, Pointer result);
         public void invoke(int key, Pointer result);
     }
     public interface SetValueByKey extends Callback {
