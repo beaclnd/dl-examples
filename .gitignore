@@ -1,8 +1,10 @@
 *.o
 *.so
 main
+!jna*/**/main
 
 .gradle
+bin
 build
 *.class
 *.jar
