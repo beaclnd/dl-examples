@@ -20,6 +20,12 @@ CandidateValue kvStore[] = {
     {0, "White", 49, 0}, {1, "Pink", 29, 0}
 };
 
+// A struct to hold the exported function result
+typedef struct _Result {
+    int code;
+    char* message;
+} FunctionResult;
+
 // The functions to be imported into the dl
 void getValueByKey(int key, GetValueByKeyResult *result) {
     if (key > 1 || key < 0) {
@@ -62,10 +68,19 @@ void dllinked() {
     hello(buf);
 
     initImportedFunctions(getValueByKey, setValueByKey, myLog);
-    vote(1, -1);
-    vote(1, 0);
-    vote(1, 0);
-    vote(1, 1);
+    FunctionResult fr;
+    char msgBuf[100] = {0};
+    fr.message = msgBuf;
+    callMethod("not-existed", &fr);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, -1);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 0);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 0);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 1);
+    printf("%s\n", fr.message);
     printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
     printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
     #endif
@@ -93,11 +108,20 @@ void dlopened() {
 
     void (*initImportedFunctions)(void*, void*, void*) = dlsym(dlhandle, "initImportedFunctions");
     initImportedFunctions(getValueByKey, setValueByKey, myLog);
-    void (*vote)(int, int) = dlsym(dlhandle, "vote");
-    vote(1, -1);
-    vote(1, 0);
-    vote(1, 0);
-    vote(1, 1);
+    void (*callMethod)(char*, FunctionResult*, ...) = dlsym(dlhandle, "callMethod");
+    FunctionResult fr;
+    char msgBuf[100] = {0};
+    fr.message = msgBuf;
+    callMethod("not-existed", &fr);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, -1);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 0);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 0);
+    printf("%s\n", fr.message);
+    callMethod("vote", &fr, 1);
+    printf("%s\n", fr.message);
     printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
     printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
     #endif

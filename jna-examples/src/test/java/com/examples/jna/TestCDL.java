@@ -159,29 +159,50 @@ public class TestCDL {
     }
 
     @Test
+    @DisplayName("test to call the vote function directly not through the callMethod function")
+//    @Disabled
+    public void callVoteDirectlyInCdl() {
+        CDL.FunctionResult fr = new CDL.FunctionResult();
+        Error err = Assertions.assertThrows(Error.class, () -> cdl.vote(0, fr));
+        Assertions.assertTrue(err.getMessage().contains("undefined symbol: vote"));
+    }
+
+    @Test
     @DisplayName("test to call the vote function which will call the callbacks in the c dynamic library")
 //    @Disabled
     public void callVoteInCdl() {
-        // the callback functions
+        // Generate and import the callback function instances
         GetValueByKeyImp gvbki = new GetValueByKeyImp();
         SetValueByKeyImp svbki = new SetValueByKeyImp();
         LogSomethingImp lsi = new LogSomethingImp();
         cdl.initImportedFunctions(gvbki, svbki, lsi);
-        CDL.FunctionResult fr = cdl.vote(1, -1);
+
+        // Init the string buffer to receive data
+        CSTDDL cstddl = Native.load("c", CSTDDL.class);
+        int msgBufLen = 100;
+        Pointer msgPtr = cstddl.malloc(msgBufLen);
+        msgPtr.setMemory(0, msgBufLen, (byte)0);
+
+        CDL.FunctionResult fr = new CDL.FunctionResult();
+        fr.message = msgPtr;
+        CDL.FunctionResult frOut = cdl.callMethod("vote", fr, -1);
+        Assertions.assertEquals(fr.code, frOut.code);
+        Assertions.assertEquals(fr.message, frOut.message);
         Assertions.assertEquals(fr.code, -1);
-        Assertions.assertEquals(fr.message, "Faied to found the candidate");
-        fr = cdl.vote(1, 0);
+        Assertions.assertEquals(fr.message.getString(0), "Faied to found the candidate: id = -1");
+        cdl.callMethod("vote", fr, 0);
         Assertions.assertEquals(fr.code, 0);
-        Assertions.assertEquals(fr.message, "Success to vote");
+        Assertions.assertEquals(fr.message.getString(0), "Success to vote");
         Assertions.assertEquals(kvStore.get(0).votes, 1);
         Assertions.assertEquals(kvStore.get(1).votes, 0);
-        fr = cdl.vote(1, 0);
+        cdl.callMethod("vote", fr, 0);
         Assertions.assertEquals(fr.code, 0);
-        Assertions.assertEquals(fr.message, "Success to vote");
+        Assertions.assertEquals(fr.message.getString(0), "Success to vote");
         Assertions.assertEquals(kvStore.get(0).votes, 2);
-        fr = cdl.vote(1, 1);
+        Assertions.assertEquals(kvStore.get(1).votes, 0);
+        cdl.callMethod("vote", fr, 1);
         Assertions.assertEquals(fr.code, 0);
-        Assertions.assertEquals(fr.message, "Success to vote");
+        Assertions.assertEquals(fr.message.getString(0), "Success to vote");
         Assertions.assertEquals(kvStore.get(1).votes, 1);
     }
 }

@@ -9,8 +9,11 @@ public interface CDL extends Library {
     void hello(String message);
     int addSum(int a, int b);
     void concatString(int count, Object... args);
-    FunctionResult.ByValue vote(int count, Object... args);
     void initImportedFunctions(GetValueByKey gvbk, SetValueByKey svbk, LogSomething ls);
+    FunctionResult.ByValue callMethod(String name, FunctionResult result, Object... args);
+    // The vote method is static in the c native library
+    // and could not be called directly not through the callMethod function
+    FunctionResult.ByValue vote(int id, FunctionResult result);
 
     @Structure.FieldOrder({"exception", "value"})
     public class GetValueByKeyResult extends Structure{
@@ -30,7 +33,8 @@ public interface CDL extends Library {
     @Structure.FieldOrder({"code", "message"})
     public class FunctionResult extends Structure {
            public int code;
-           public String message;
+           // To receive string data
+           public Pointer message;
 
            public static class ByValue extends FunctionResult implements Structure.ByValue {}
     }
