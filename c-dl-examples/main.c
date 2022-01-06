@@ -4,60 +4,89 @@
 #include <stdarg.h>
 
 // A struct to hold the cadidate value
-typedef struct _Value {
-    int id;
-    char* name;
+typedef struct _Value
+{
+    char *id;
+    char *name;
     int age;
     int votes;
 } CandidateValue;
-typedef struct _GetValueByKeyResult {
-    bool exception; 
+typedef struct _GetValueByKeyResult
+{
+    bool status;
     void *value;
 } GetValueByKeyResult;
+typedef struct _Args {
+    char *id;
+} VoteArgs;
 
 // An array to mock the kv store
-CandidateValue kvStore[] = {
-    {0, "White", 49, 0}, {1, "Pink", 29, 0}
-};
+CandidateValue c1 = {"a123", "White", 49, 0};
+CandidateValue c2 = {"b456", "Pink", 29, 0};
 
 // A struct to hold the exported function result
-typedef struct _Result {
-    int code;
-    char* message;
+typedef struct _Result
+{
+    char *code;
+    char *message;
 } FunctionResult;
 
 // The functions to be imported into the dl
-void getValueByKey(int key, GetValueByKeyResult *result) {
-    if (key > 1 || key < 0) {
-        result->exception = true;
+void getValueByKey(char *key, GetValueByKeyResult *result)
+{
+    if (strcmp(key, "a123") != 0 && strcmp(key, "b456") != 0)
+    {
+        result->status = false;
         result->value = NULL;
         return;
     }
-    result->exception = false;
+    result->status = true;
     CandidateValue *cv = result->value;
-    cv->id = kvStore[key].id;
-    cv->name = kvStore[key].name;
-    cv->age = kvStore[key].age;
-    cv->votes = kvStore[key].votes;
-}
-int setValueByKey(int key, void *value) {
-    if (key > 1 || key < 0) {
-        return -1;
+    if (strcmp(key, "a123") == 0)
+    {
+        cv->id = c1.id;
+        cv->name = c1.name;
+        cv->age = c1.age;
+        cv->votes = c1.votes;
     }
-    CandidateValue *cv = value;
-    kvStore[key].id = cv->id;
-    kvStore[key].name = cv->name;
-    kvStore[key].age = cv->age;
-    kvStore[key].votes = cv->votes;
-    return 0;
+    else
+    {
+        cv->id = c2.id;
+        cv->name = c2.name;
+        cv->age = c2.age;
+        cv->votes = c2.votes;
+    }
 }
-void myLog(char* message) {
+bool setValueByKey(char *key, void *value)
+{
+    if (strcmp(key, "a123") != 0 && strcmp(key, "b456") != 0)
+    {
+        return false;
+    }
+
+    CandidateValue *cv = value;
+    if (strcmp(key, "a123") == 0) {
+        c1.id = cv->id;
+        c1.name = cv->name;
+        c1.age = cv->age;
+        c1.votes = cv->votes;
+    } else {
+        c2.id = cv->id;
+        c2.name = cv->name;
+        c2.age = cv->age;
+        c2.votes = cv->votes;
+    }
+    return true;
+}
+void myLog(char *message)
+{
     printf("%s\n", message);
 }
 
-void dllinked() {
-    #ifdef DLLINKED
-    #include "../test_lib.h"
+void dllinked()
+{
+#ifdef DLLINKED
+#include "../test_lib.h"
 
     char buf[1000] = {0};
     concatString(4, buf, true, "This is the string 1", " and this is the string 2");
@@ -71,29 +100,33 @@ void dllinked() {
     FunctionResult fr;
     char msgBuf[100] = {0};
     fr.message = msgBuf;
-    callMethod("not-existed", &fr);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, -1);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 0);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 0);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 1);
-    printf("%s\n", fr.message);
-    printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
-    printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
-    #endif
+    VoteArgs args0 = {"not-existed"};
+    VoteArgs args1 = {"a123"};
+    VoteArgs args2 = {"b456"};
+    callMethod("not-existed", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args0, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args2, &fr);
+    printf("Method result: %s\n", fr.message);
+    printf("The candidate a123: (id: %s, name: %s, age: %d, votes: %d)\n", c1.id, c1.name, c1.age, c1.votes);
+    printf("The candidate b456: (id: %s, name: %s, age: %d, votes: %d)\n", c2.id, c2.name, c2.age, c2.votes);
+#endif
 }
 
-void dlopened() {
-    #ifdef DLOPENED
-    #include <dlfcn.h>
+void dlopened()
+{
+#ifdef DLOPENED
+#include <dlfcn.h>
 
     typedef void (*anyfunc)(int, ...);
 
     void *dlhandle = dlopen("./libtest_lib.so", RTLD_LAZY);
-    void (*hello)(char*) = dlsym(dlhandle, "hello");
+    void (*hello)(char *) = dlsym(dlhandle, "hello");
 
     // char* (*concatString)(char*, char*) = dlsym(dlhandle, "concatString");
     anyfunc concatString = dlsym(dlhandle, "concatString");
@@ -106,28 +139,32 @@ void dlopened() {
     sprintf(buf, "the sum is: %d", sum);
     hello(buf);
 
-    void (*initImportedFunctions)(void*, void*, void*) = dlsym(dlhandle, "initImportedFunctions");
+    void (*initImportedFunctions)(void *, void *, void *) = dlsym(dlhandle, "initImportedFunctions");
     initImportedFunctions(getValueByKey, setValueByKey, myLog);
-    void (*callMethod)(char*, FunctionResult*, ...) = dlsym(dlhandle, "callMethod");
+    void (*callMethod)(char *, void *, FunctionResult *, ...) = dlsym(dlhandle, "callMethod");
     FunctionResult fr;
     char msgBuf[100] = {0};
     fr.message = msgBuf;
-    callMethod("not-existed", &fr);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, -1);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 0);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 0);
-    printf("%s\n", fr.message);
-    callMethod("vote", &fr, 1);
-    printf("%s\n", fr.message);
-    printf("The candidate 0: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[0].id, kvStore[0].name, kvStore[0].age, kvStore[0].votes);
-    printf("The candidate 1: (id: %d, name: %s, age: %d, votes: %d)\n", kvStore[1].id, kvStore[1].name, kvStore[1].age, kvStore[1].votes);
-    #endif
+    VoteArgs args0 = {"not-existed"};
+    VoteArgs args1 = {"a123"};
+    VoteArgs args2 = {"b456"};
+    callMethod("not-existed", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args0, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args1, &fr);
+    printf("Method result: %s\n", fr.message);
+    callMethod("vote", &args2, &fr);
+    printf("Method result: %s\n", fr.message);
+    printf("The candidate a123: (id: %s, name: %s, age: %d, votes: %d)\n", c1.id, c1.name, c1.age, c1.votes);
+    printf("The candidate b456: (id: %s, name: %s, age: %d, votes: %d)\n", c2.id, c2.name, c2.age, c2.votes);
+#endif
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     dllinked();
     dlopened();
 

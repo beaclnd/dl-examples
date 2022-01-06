@@ -41,45 +41,42 @@ void initImportedFunctions(GetValueByKey getValueByKeyFunc, SetValueByKey setVal
 }
 
 // The inner of the function will call the callback functions
-static FunctionResult vote(int id, FunctionResult *fr) {
-    GetValueByKeyResult result; 
+static FunctionResult vote(VoteArgs *args, FunctionResult *fr) {
+    GetValueByKeyResult get_result; 
     CandidateValue cv;
-    result.value = &cv;
-    getValueByKey(id, &result);
-    if (result.exception) {
+    get_result.value = &cv;
+    char *id = args->id;
+    getValueByKey(id, &get_result);
+    if (!get_result.status) {
         char buf[100] = {0};
-        sprintf(buf, "Not found the candidate whose id is: %d", id);
+        sprintf(buf, "Not found the candidate: id = %s", id);
         logSomething(buf);
-        fr->code = -1;
+        fr->status = false;
         char *msgBuf = fr->message;
-        sprintf(msgBuf, "Faied to found the candidate: id = %d", id);
+        sprintf(msgBuf, "Faied to found the candidate: id = %s", id);
         return *fr;
     }
     cv.votes += 1;
-    int result_code = setValueByKey(id, &cv);
-    if (result_code == -1) {
-        fr->code = -1;
+    bool set_result = setValueByKey(id, &cv);
+    if (!set_result) {
+        fr->status = false;
         char *msgBuf = fr->message;
-        sprintf(msgBuf, "Faied to set the candidate: id = %d", id);
+        sprintf(msgBuf, "Faied to set the candidate: id = %s", id);
         return *fr;
     }
-    fr->code = 0;
+    fr->status = true;
     char *msgBuf = fr->message;
     sprintf(msgBuf, "Success to vote");
     return *fr;
 }
 
-FunctionResult callMethod(char* name, FunctionResult *result, ...) {
-    va_list ap;
-    va_start(ap, result);
+FunctionResult callMethod(char* name, void *args, FunctionResult *result) {
     if (strcmp(name, "vote") == 0)  {
-        int id = va_arg(ap, int);
-        return vote(id, result);
+        return vote(args, result);
     } else {
-        result->code = -1;
+        result->status = false;
         char *buf = result->message; 
         snprintf(buf, 100, "Not found the function: %s", name);
     }
-    va_end(ap);
     return *result;
 }

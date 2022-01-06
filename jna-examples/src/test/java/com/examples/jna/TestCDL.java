@@ -13,13 +13,13 @@ public class TestCDL {
         void free(Pointer ptr);
     }
     // A map to mock the kv store
-    HashMap<Integer, CandidateValue> kvStore = new HashMap<Integer, CandidateValue>();
+    HashMap<String, CandidateValue> kvStore = new HashMap<String, CandidateValue>();
     CandidateValue cv0, cv1;
 
     public class GetValueByKeyImp implements CDL.GetValueByKey {
         @Override
 //        public CDL.GetValueByKeyResult.ByValue invoke(int key, Pointer resultPtr) {
-        public void invoke(int key, Pointer resultPtr) {
+        public void invoke(String key, Pointer resultPtr) {
             CandidateValue v = kvStore.get(key);
             CDL.GetValueByKeyResult result = new CDL.GetValueByKeyResult(resultPtr);
 //            CDL.GetValueByKeyResult.ByValue retu = new CDL.GetValueByKeyResult.ByValue();
@@ -28,14 +28,14 @@ public class TestCDL {
                 // return null;
 
                 // write to the native memory
-                result.exception = true;
+                result.status = 0;
                 result.write();
                 return;
 //                retu.exception = true;
 //                retu.value = Pointer.NULL;
 //                return retu;
             }
-            result.exception = false;
+            result.status = 1;
             CandidateValue cv = new CandidateValue(result.value);
             cv.setAllFields(v);
             // write to the native memory
@@ -48,17 +48,17 @@ public class TestCDL {
     }
     public class SetValueByKeyImp implements CDL.SetValueByKey {
         @Override
-        public int invoke(int key, Pointer value) {
+        public int invoke(String key, Pointer value) {
             try {
                 CandidateValue v = new CandidateValue(value);
                 // Clone a new Structure instance to use the getPointer method
                 kvStore.put(key, new CandidateValue(v));
             }
             catch(Error e) {
-                return -1;
+                return 0;
             }
             finally {
-                return 0;
+                return 1;
             }
         }
     }
@@ -72,7 +72,7 @@ public class TestCDL {
 
     @Structure.FieldOrder({"id", "name", "age", "votes"})
     public class CandidateValue extends Structure {
-        public int id;
+        public String id;
         public String name;
         public int age;
         public int votes;
@@ -88,7 +88,7 @@ public class TestCDL {
             read();
         }
 
-        public CandidateValue(int id, String name, int age, int votes) {
+        public CandidateValue(String id, String name, int age, int votes) {
             this.id = id;
             this.name = name;
             this.age = age;
@@ -105,16 +105,25 @@ public class TestCDL {
 
     }
 
+    @Structure.FieldOrder({"id"})
+    public class VoteArgs extends Structure {
+        public String id;
+
+        public VoteArgs(String id) {
+            this.id = id;
+        }
+    }
+
     @BeforeAll
     public void setup() {
 //        Native.setProtected(true);
         String cdlPath = "src/test/resources";
         NativeLibrary.addSearchPath("test_lib", cdlPath);
         cdl = Native.load("test_lib", CDL.class);
-        cv0 = new CandidateValue(0, "White", 49, 0);
-        cv1 = new CandidateValue(1, "Pink", 29, 0);
-        kvStore.put(0, cv0);
-        kvStore.put(1, cv1);
+        cv0 = new CandidateValue("a123", "White", 49, 0);
+        cv1 = new CandidateValue("b456", "Pink", 29, 0);
+        kvStore.put("a123", cv0);
+        kvStore.put("b456", cv1);
     }
 
     @AfterAll
@@ -158,6 +167,7 @@ public class TestCDL {
         cstddl.free(ptr);
     }
 
+
     @Test
     @DisplayName("test to call the vote function directly not through the callMethod function")
 //    @Disabled
@@ -185,24 +195,30 @@ public class TestCDL {
 
         CDL.FunctionResult fr = new CDL.FunctionResult();
         fr.message = msgPtr;
-        CDL.FunctionResult frOut = cdl.callMethod("vote", fr, -1);
-        Assertions.assertEquals(fr.code, frOut.code);
+        VoteArgs args0 = new VoteArgs("not-existed");
+        VoteArgs args1 = new VoteArgs("a123");
+        VoteArgs args2 = new VoteArgs("b456");
+        CDL.FunctionResult frOut = cdl.callMethod("vote", args0, fr);
+        Assertions.assertEquals(fr.status, frOut.status);
         Assertions.assertEquals(fr.message, frOut.message);
-        Assertions.assertEquals(fr.code, -1);
-        Assertions.assertEquals(fr.message.getString(0), "Faied to found the candidate: id = -1");
-        cdl.callMethod("vote", fr, 0);
-        Assertions.assertEquals(fr.code, 0);
+        Assertions.assertFalse(fr.status);
+        Assertions.assertEquals(fr.message.getString(0), "Faied to found the candidate: id = not-existed");
+        cdl.callMethod("vote", args1, fr);
+        Assertions.assertTrue(fr.status);
         Assertions.assertEquals(fr.message.getString(0), "Success to vote");
-        Assertions.assertEquals(kvStore.get(0).votes, 1);
-        Assertions.assertEquals(kvStore.get(1).votes, 0);
-        cdl.callMethod("vote", fr, 0);
-        Assertions.assertEquals(fr.code, 0);
+        Assertions.assertEquals(kvStore.get("a123").votes, 1);
+        Assertions.assertEquals(kvStore.get("b456").votes, 0);
+        cdl.callMethod("vote", args1, fr);
+        Assertions.assertTrue(fr.status);
         Assertions.assertEquals(fr.message.getString(0), "Success to vote");
-        Assertions.assertEquals(kvStore.get(0).votes, 2);
-        Assertions.assertEquals(kvStore.get(1).votes, 0);
-        cdl.callMethod("vote", fr, 1);
-        Assertions.assertEquals(fr.code, 0);
+        Assertions.assertEquals(kvStore.get("a123").votes, 2);
+        Assertions.assertEquals(kvStore.get("b456").votes, 0);
+        cdl.callMethod("vote", args2, fr);
+        Assertions.assertTrue(fr.status);
         Assertions.assertEquals(fr.message.getString(0), "Success to vote");
-        Assertions.assertEquals(kvStore.get(1).votes, 1);
+        Assertions.assertEquals(kvStore.get("a123").votes, 2);
+        Assertions.assertEquals(kvStore.get("b456").votes, 1);
+
+        cstddl.free(msgPtr);
     }
 }

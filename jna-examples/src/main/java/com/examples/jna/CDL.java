@@ -1,23 +1,25 @@
 package com.examples.jna;
 
-import com.sun.jna.Callback;
-import com.sun.jna.Library;
-import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
+import com.sun.jna.*;
 
 public interface CDL extends Library {
     void hello(String message);
     int addSum(int a, int b);
     void concatString(int count, Object... args);
     void initImportedFunctions(GetValueByKey gvbk, SetValueByKey svbk, LogSomething ls);
-    FunctionResult.ByValue callMethod(String name, FunctionResult result, Object... args);
+
+    FunctionResult.ByValue callMethod(String name, Object args, FunctionResult result);
     // The vote method is static in the c native library
     // and could not be called directly not through the callMethod function
     FunctionResult.ByValue vote(int id, FunctionResult result);
 
-    @Structure.FieldOrder({"exception", "value"})
+    @Structure.FieldOrder({"status", "value"})
     public class GetValueByKeyResult extends Structure{
-        public boolean exception;
+        // Use int type act as bool for c dylib,
+        // because the boolean true value in java will write 255 to the bool variable in c dylib,
+        // which is not working when use the ! operator
+        // 0 for ok, 1 for error
+        public int status;
         public Pointer value;
 
 //        public GetValueByKeyResult() {}
@@ -30,9 +32,9 @@ public interface CDL extends Library {
 //        public static class ByReference extends GetValueByKeyResult implements Structure.ByReference {}
     }
 
-    @Structure.FieldOrder({"code", "message"})
+    @Structure.FieldOrder({"status", "message"})
     public class FunctionResult extends Structure {
-           public int code;
+           public boolean status;
            // To receive string data
            public Pointer message;
 
@@ -43,10 +45,10 @@ public interface CDL extends Library {
     public interface GetValueByKey extends Callback {
         // Returning structure by value in callback is not working well
         // public GetValueByKeyResult invoke(int key, Pointer result);
-        public void invoke(int key, Pointer result);
+        public void invoke(String key, Pointer result);
     }
     public interface SetValueByKey extends Callback {
-        public int invoke(int key, Pointer value);
+        public int invoke(String key, Pointer value);
     }
     public interface LogSomething extends Callback {
         // Varargs in callback is not supported?
