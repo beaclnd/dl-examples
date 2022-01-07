@@ -18,7 +18,7 @@ public interface CDL extends Library {
         // Use int type act as bool for c dylib,
         // because the boolean true value in java will write 0xff to the bool variable in c dylib,
         // which is not working when using the ! operator in the c dylib
-        // 0 for ok, 1 for error
+        // 1 for true(ok), 0 for false(error)
         public int status;
         public Pointer value;
 
