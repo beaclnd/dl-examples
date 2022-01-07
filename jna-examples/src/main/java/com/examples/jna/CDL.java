@@ -14,10 +14,10 @@ public interface CDL extends Library {
     FunctionResult.ByValue vote(int id, FunctionResult result);
 
     @Structure.FieldOrder({"status", "value"})
-    public class GetValueByKeyResult extends Structure{
+    public class GetValueByKeyResult extends Structure {
         // Use int type act as bool for c dylib,
-        // because the boolean true value in java will write 255 to the bool variable in c dylib,
-        // which is not working when use the ! operator
+        // because the boolean true value in java will write 0xff to the bool variable in c dylib,
+        // which is not working when using the ! operator in the c dylib
         // 0 for ok, 1 for error
         public int status;
         public Pointer value;
