@@ -17,7 +17,7 @@ typedef struct _GetValueByKeyResult {
 // The functions act as callback which should be imported from the outside environment
 /* -------------------------------------- */
 // Returning struct by value in JNA callback is not working, so insteadly only use pointer parameter to receive the returning result 
-typedef void (*GetValueByKey) (char *key, GetValueByKeyResult *result);
+typedef void (*GetValueByKey)(char *key, GetValueByKeyResult *result);
 
 typedef _Bool (*SetValueByKey)(char *key, void *value);
 // JNA does not support varargs in callback function
